@@ -1,0 +1,19 @@
+{
+  "name": "onechat-web-component",
+  "version": "0.0.1",
+  "description": "OneChat Web Component",
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc && vite build",
+    "clean": "rimraf dist"
+  },
+  "dependencies": {
+    "lit": "^3.3.3"
+  }
+}
