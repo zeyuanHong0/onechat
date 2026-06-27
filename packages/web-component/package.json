@@ -14,6 +14,7 @@
     "clean": "rimraf dist"
   },
   "dependencies": {
+    "iconify-icon": "^3.0.2",
     "lit": "^3.3.3"
   }
 }
