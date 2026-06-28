@@ -125,10 +125,119 @@ export class AiChat extends LitElement {
       background: var(--ai-chat-surface);
     }
 
+    .message-row {
+      display: flex;
+      gap: 10px;
+      max-width: 100%;
+    }
+
+    .message-row.user {
+      flex-direction: row-reverse;
+    }
+
+    .message-avatar {
+      width: 30px;
+      height: 30px;
+      border-radius: 50%;
+      flex-shrink: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 14px;
+    }
+
+    .message-row.user .message-avatar {
+      background: #e0e7ff;
+      color: #4338ca;
+    }
+
+    .message-row.ai .message-avatar {
+      background: var(--ai-chat-primary);
+      color: #ffffff;
+    }
+
+    .message-content {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+      max-width: 78%;
+    }
+
+    .message-bubble {
+      padding: 10px 14px;
+      border-radius: var(--ai-chat-radius);
+      font-size: var(--ai-chat-font-size);
+      line-height: 1.55;
+      word-break: break-word;
+    }
+
+    .message-row.user .message-bubble {
+      background: var(--ai-chat-user-bubble);
+      color: white;
+      border-bottom-right-radius: 4px;
+    }
+
+    .message-row.ai .message-bubble {
+      background: var(--ai-chat-ai-bubble);
+      color: var(--ai-chat-ai-text);
+      border-bottom-left-radius: 4px;
+    }
+
+    .message-time {
+      font-size: var(--ai-chat-font-size-xs);
+      color: var(--ai-chat-text-secondary);
+      padding: 0 4px;
+    }
+
+    .message-row.user .message-time {
+      text-align: right;
+    }
+
     .chat-input-area {
       padding: 12px 16px;
       border-top: 1px solid var(--ai-chat-border);
       background: var(--ai-chat-bg);
+    }
+    .chat-input-wrapper {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      background: var(--ai-chat-surface);
+      border: 1px solid var(--ai-chat-border);
+      border-radius: 22px;
+      padding: 6px 8px 6px 14px;
+      transition: border-color 0.2s;
+    }
+
+    .chat-input {
+      flex: 1;
+      border: none;
+      outline: none;
+      font-size: var(--ai-chat-font-size);
+      color: var(--ai-chat-text);
+      background: transparent;
+      font-family: inherit;
+      line-height: 1.4;
+    }
+
+    .input-send-btn {
+      width: 32px;
+      height: 32px;
+      border-radius: 50%;
+      background: var(--ai-chat-primary);
+      border: none;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      flex-shrink: 0;
+      transition:
+        background 0.2s,
+        transform 0.1s;
+    }
+
+    .input-send-btn iconify-icon {
+      color: #ffffff;
     }
   `;
 
@@ -146,8 +255,50 @@ export class AiChat extends LitElement {
             <iconify-icon icon="lucide:sun"></iconify-icon>
           </div>
         </div>
-        <div class="chat-messsages-container"></div>
-        <div class="chat-input-area"></div>
+        <div class="chat-messsages-container">
+          <div class="message-row user">
+            <div class="message-avatar">U</div>
+            <div class="message-content">
+              <div class="message-bubble">你好，请帮我介绍一下 TypeScript 。</div>
+              <span class="message-time">09:00</span>
+            </div>
+          </div>
+          <div class="message-row ai">
+            <div class="message-avatar">A</div>
+            <div class="message-content">
+              <div class="message-bubble">
+                TypeScript 是 JavaScript
+                的超集，为代码提供了静态类型检查，能在编译时发现潜在的错误。
+              </div>
+              <span class="message-time">09:01</span>
+            </div>
+          </div>
+          <div class="message-row user">
+            <div class="message-avatar">U</div>
+            <div class="message-content">
+              <div class="message-bubble">你好，请帮我介绍一下 TypeScript 。</div>
+              <span class="message-time">09:00</span>
+            </div>
+          </div>
+          <div class="message-row ai">
+            <div class="message-avatar">A</div>
+            <div class="message-content">
+              <div class="message-bubble">
+                TypeScript 是 JavaScript
+                的超集，为代码提供了静态类型检查，能在编译时发现潜在的错误。
+              </div>
+              <span class="message-time">09:01</span>
+            </div>
+          </div>
+        </div>
+        <div class="chat-input-area">
+          <div class="chat-input-wrapper">
+            <input type="text" class="chat-input" placeholder="输入消息..." />
+            <button class="input-send-btn">
+              <iconify-icon icon="lucide:send-horizontal"></iconify-icon>
+            </button>
+          </div>
+        </div>
       </div>
     `;
   }
