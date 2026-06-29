@@ -1,7 +1,17 @@
 import { LitElement, css, html } from 'lit';
-import { customElement } from 'lit/decorators.js';
+import { customElement, property, state } from 'lit/decorators.js';
+import { repeat } from 'lit/directives/repeat.js';
+import { formatTime } from '../utils';
 
 import 'iconify-icon';
+
+interface Message {
+  id: string;
+  role: 'user' | 'assistant' | 'system';
+  content: string;
+  createTime: number;
+  status?: 'sending' | 'success' | 'error';
+}
 
 @customElement('ai-chat')
 export class AiChat extends LitElement {
@@ -30,9 +40,10 @@ export class AiChat extends LitElement {
       --ai-chat-shadow: 0 20px 60px rgba(0, 0, 0, 0.12), 0 8px 20px rgba(0, 0, 0, 0.08);
       --ai-chat-container-width: 400px;
       --ai-chat-container-height: 600px;
+      --ai-chat-fab-size: 56px;
     }
 
-    .dark-theme {
+    :host(.dark-theme) {
       --ai-chat-bg: #0f0f14;
       --ai-chat-surface: #1a1a24;
       --ai-chat-border: #2a2a3a;
@@ -52,7 +63,57 @@ export class AiChat extends LitElement {
       box-sizing: border-box;
     }
 
-    .chat-widget {
+    .chat-wrapper {
+      position: fixed;
+      bottom: 24px;
+      right: 24px;
+      z-index: 9999;
+      display: flex;
+      flex-direction: column;
+      align-items: flex-end;
+      gap: 16px;
+    }
+
+    .chat-fab {
+      position: absolute;
+      right: 0;
+      bottom: 0;
+      width: var(--ai-chat-fab-size);
+      height: var(--ai-chat-fab-size);
+      border-radius: 50%;
+      background: var(--ai-chat-primary);
+      border: none;
+      color: #ffffff;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: var(--ai-chat-shadow);
+      cursor: pointer;
+      opacity: 1;
+      transition:
+        transform 0.2s,
+        background-color 0.2s,
+        opacity 0.2s ease;
+    }
+
+    .chat-fab:hover {
+      transform: scale(1.05);
+      background: var(--ai-chat-primary-hover);
+    }
+
+    .chat-fab.hidden {
+      opacity: 0;
+      pointer-events: none;
+    }
+
+    .chat-fab iconify-icon {
+      font-size: 24px;
+    }
+
+    .chat-panel {
+      position: absolute;
+      right: 0;
+      bottom: 0;
       width: var(--ai-chat-container-width);
       height: var(--ai-chat-container-height);
       background: var(--ai-chat-bg);
@@ -62,6 +123,23 @@ export class AiChat extends LitElement {
       flex-direction: column;
       overflow: hidden;
       border: 1px solid var(--ai-chat-border);
+      transform-origin: bottom right;
+      opacity: 0;
+
+      transform: scale(0.95);
+      visibility: hidden;
+      pointer-events: none;
+
+      transition:
+        opacity 0.2s ease,
+        transform 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+
+    .chat-panel.open {
+      opacity: 1;
+      transform: scale(1);
+      visibility: visible;
+      pointer-events: auto;
     }
 
     .chat-header {
@@ -102,7 +180,13 @@ export class AiChat extends LitElement {
       color: var(--ai-chat-text);
     }
 
-    .chat-header-toggle {
+    .chat-header-actions {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .chat-header-btn {
       width: 32px;
       height: 32px;
       border-radius: 8px;
@@ -113,9 +197,18 @@ export class AiChat extends LitElement {
       background: var(--ai-chat-surface);
       border: 1px solid var(--ai-chat-border);
       color: var(--ai-chat-text-secondary);
+      padding: 0;
+      transition:
+        background-color 0.2s,
+        color 0.2s;
     }
 
-    .chat-messsages-container {
+    .chat-header-btn:hover {
+      background: var(--ai-chat-border);
+      color: var(--ai-chat-text);
+    }
+
+    .chat-messages-container {
       flex: 1;
       overflow-y: auto;
       padding: 16px;
@@ -241,64 +334,146 @@ export class AiChat extends LitElement {
     }
   `;
 
+  @property({ type: Boolean })
+  darkTheme: boolean = false;
+
+  private toggleTheme() {
+    this.darkTheme = !this.darkTheme;
+    if (this.darkTheme) {
+      this.classList.add('dark-theme');
+    } else {
+      this.classList.remove('dark-theme');
+    }
+  }
+
+  @property()
+  title = 'OneChat';
+
+  @property()
+  placeholder = '请输入消息...';
+
+  @property({ type: Boolean })
+  isOpen = false;
+
+  private readonly roleClassMap = {
+    user: 'user',
+    assistant: 'ai',
+    system: 'ai',
+  } as const;
+
+  @state()
+  messages: Message[] = [
+    {
+      id: '1',
+      role: 'user',
+      content: '你好，请帮我介绍一下 TypeScript 。',
+      createTime: Date.now(),
+    },
+    {
+      id: '2',
+      role: 'assistant',
+      content:
+        'TypeScript 是 JavaScript 的超集，为代码提供了静态类型检查，能在编译时发现潜在的错误。',
+      createTime: Date.now(),
+    },
+  ];
+
+  @state()
+  inputMessage: string = '';
+
+  private handleInputChange(event: Event) {
+    const target = event.target as HTMLInputElement;
+    this.inputMessage = target.value;
+  }
+
+  private sendMessage() {
+    if (this.inputMessage.trim() === '') {
+      return;
+    }
+    const newMessage: Message = {
+      id: Date.now().toString(),
+      role: 'user',
+      content: this.inputMessage,
+      createTime: Date.now(),
+    };
+    this.messages = [...this.messages, newMessage];
+    this.inputMessage = '';
+  }
+
   render() {
     return html`
-      <div class="chat-widget">
-        <div class="chat-header">
-          <div class="chat-header-left">
-            <div class="chat-header-logo">
-              <iconify-icon icon="lucide:bot"></iconify-icon>
-            </div>
-            <span class="chat-header-title">Ai Chat</span>
-          </div>
-          <div class="chat-header-toggle">
-            <iconify-icon icon="lucide:sun"></iconify-icon>
-          </div>
-        </div>
-        <div class="chat-messsages-container">
-          <div class="message-row user">
-            <div class="message-avatar">U</div>
-            <div class="message-content">
-              <div class="message-bubble">你好，请帮我介绍一下 TypeScript 。</div>
-              <span class="message-time">09:00</span>
-            </div>
-          </div>
-          <div class="message-row ai">
-            <div class="message-avatar">A</div>
-            <div class="message-content">
-              <div class="message-bubble">
-                TypeScript 是 JavaScript
-                的超集，为代码提供了静态类型检查，能在编译时发现潜在的错误。
+      <div class="chat-wrapper">
+        <div class="chat-panel ${this.isOpen ? 'open' : ''}">
+          <div class="chat-header">
+            <div class="chat-header-left">
+              <div class="chat-header-logo">
+                <iconify-icon icon="lucide:bot"></iconify-icon>
               </div>
-              <span class="message-time">09:01</span>
+              <span class="chat-header-title">${this.title}</span>
+            </div>
+            <div class="chat-header-actions">
+              <button
+                class="chat-header-btn"
+                type="button"
+                @click=${this.toggleTheme}
+                title="切换主题"
+              >
+                ${this.darkTheme
+                  ? html`<iconify-icon icon="lucide:moon"></iconify-icon>`
+                  : html`<iconify-icon icon="lucide:sun"></iconify-icon>`}
+              </button>
+              <button
+                class="chat-header-btn"
+                type="button"
+                @click=${() => (this.isOpen = false)}
+                title="收起"
+              >
+                <iconify-icon icon="lucide:minus"></iconify-icon>
+              </button>
             </div>
           </div>
-          <div class="message-row user">
-            <div class="message-avatar">U</div>
-            <div class="message-content">
-              <div class="message-bubble">你好，请帮我介绍一下 TypeScript 。</div>
-              <span class="message-time">09:00</span>
-            </div>
+          <div class="chat-messages-container">
+            ${repeat(
+              this.messages,
+              (message) => message.id,
+              (message) => html`
+                <div class="message-row ${this.roleClassMap[message.role]}">
+                  <div class="message-avatar">
+                    ${message.role === 'user'
+                      ? html`<iconify-icon icon="lucide:user-round"></iconify-icon>`
+                      : html`<iconify-icon icon="lucide:sparkles"></iconify-icon>`}
+                  </div>
+                  <div class="message-content">
+                    <div class="message-bubble">${message.content}</div>
+                    <span class="message-time">${formatTime(new Date(message.createTime))}</span>
+                  </div>
+                </div>
+              `,
+            )}
           </div>
-          <div class="message-row ai">
-            <div class="message-avatar">A</div>
-            <div class="message-content">
-              <div class="message-bubble">
-                TypeScript 是 JavaScript
-                的超集，为代码提供了静态类型检查，能在编译时发现潜在的错误。
-              </div>
-              <span class="message-time">09:01</span>
+          <div class="chat-input-area">
+            <div class="chat-input-wrapper">
+              <input
+                type="text"
+                class="chat-input"
+                placeholder=${this.placeholder}
+                .value=${this.inputMessage}
+                @input=${this.handleInputChange}
+              />
+              <button class="input-send-btn" type="button" @click=${this.sendMessage}>
+                <iconify-icon icon="lucide:send-horizontal"></iconify-icon>
+              </button>
             </div>
           </div>
         </div>
-        <div class="chat-input-area">
-          <div class="chat-input-wrapper">
-            <input type="text" class="chat-input" placeholder="输入消息..." />
-            <button class="input-send-btn">
-              <iconify-icon icon="lucide:send-horizontal"></iconify-icon>
-            </button>
-          </div>
-        </div>
+
+        <button
+          class="chat-fab ${this.isOpen ? 'hidden' : ''}"
+          type="button"
+          @click=${() => (this.isOpen = true)}
+        >
+          <iconify-icon icon="lucide:message-circle"></iconify-icon>
+        </button>
       </div>
     `;
   }
