@@ -10,7 +10,7 @@ interface Message {
   role: 'user' | 'assistant' | 'system';
   content: string;
   createTime: number;
-  status?: 'sending' | 'success' | 'error';
+  status?: 'loading' | 'sending' | 'success' | 'error';
 }
 
 @customElement('ai-chat')
@@ -264,6 +264,69 @@ export class AiChat extends LitElement {
       word-break: break-word;
     }
 
+    .message-bubble.loading {
+      min-width: 72px;
+      min-height: 40px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .loading-indicator {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      color: var(--ai-chat-text-secondary);
+    }
+
+    .loading-icon {
+      width: 16px;
+      height: 16px;
+      animation: ai-chat-spin 1s linear infinite;
+    }
+
+    .loading-dots {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+    }
+
+    .loading-dots span {
+      width: 5px;
+      height: 5px;
+      border-radius: 999px;
+      background: currentColor;
+      animation: ai-chat-bounce 1.2s infinite ease-in-out both;
+    }
+
+    .loading-dots span:nth-child(2) {
+      animation-delay: 0.12s;
+    }
+
+    .loading-dots span:nth-child(3) {
+      animation-delay: 0.24s;
+    }
+
+    @keyframes ai-chat-spin {
+      to {
+        transform: rotate(360deg);
+      }
+    }
+
+    @keyframes ai-chat-bounce {
+      0%,
+      80%,
+      100% {
+        transform: translateY(0);
+        opacity: 0.4;
+      }
+
+      40% {
+        transform: translateY(-3px);
+        opacity: 1;
+      }
+    }
+
     .message-row.user .message-bubble {
       background: var(--ai-chat-user-bubble);
       color: white;
@@ -304,6 +367,9 @@ export class AiChat extends LitElement {
 
     .chat-input {
       flex: 1;
+      width: 100%;
+      min-height: 22px;
+      max-height: 120px;
       border: none;
       outline: none;
       font-size: var(--ai-chat-font-size);
@@ -311,6 +377,20 @@ export class AiChat extends LitElement {
       background: transparent;
       font-family: inherit;
       line-height: 1.4;
+      overflow-y: auto;
+      display: block;
+    }
+
+    textarea {
+      resize: none;
+      padding: 0;
+      margin: 0;
+      appearance: none;
+      -webkit-appearance: none;
+    }
+
+    textarea::placeholder {
+      color: var(--ai-chat-text-secondary);
     }
 
     .input-send-btn {
@@ -330,7 +410,13 @@ export class AiChat extends LitElement {
     }
 
     .input-send-btn iconify-icon {
+      font-size: 20px;
       color: #ffffff;
+    }
+
+    .input-send-btn.disabled {
+      background: var(--ai-chat-border);
+      cursor: default;
     }
   `;
 
@@ -350,7 +436,7 @@ export class AiChat extends LitElement {
   title = 'OneChat';
 
   @property()
-  placeholder = '请输入消息...';
+  placeholder = '有问题，尽管问';
 
   @property({ type: Boolean })
   isOpen = false;
@@ -376,28 +462,158 @@ export class AiChat extends LitElement {
         'TypeScript 是 JavaScript 的超集，为代码提供了静态类型检查，能在编译时发现潜在的错误。',
       createTime: Date.now(),
     },
+    {
+      id: '3',
+      role: 'user',
+      content: 'TypeScript 的主要特点有哪些？',
+      createTime: Date.now(),
+    },
+    {
+      id: '4',
+      role: 'assistant',
+      content:
+        'TypeScript 的主要特点包括：\n1. 静态类型检查：在编译时检查类型错误，减少运行时错误。\n2. 类型注解：可以为变量、函数参数和返回值添加类型注解。\n3. 接口和类：支持面向对象编程，提供接口和类的概念。\n4. 模块化：支持 ES6 模块化语法，便于代码组织和复用。\n5. 丰富的工具支持：与主流编辑器和 IDE 集成，提供智能提示和重构功能。',
+      createTime: Date.now(),
+    },
+    {
+      id: '5',
+      role: 'user',
+      content: 'TypeScript 与 JavaScript 有什么区别？',
+      createTime: Date.now(),
+    },
+    {
+      id: '6',
+      role: 'assistant',
+      content:
+        'TypeScript 是 JavaScript 的超集，主要区别在于：\n1. 类型系统：TypeScript 提供了静态类型检查，而 JavaScript 是动态类型语言。\n2. 编译过程：TypeScript 需要编译为 JavaScript 才能运行，而 JavaScript 可以直接在浏览器中运行。\n3. 语法扩展：TypeScript 引入了接口、枚举、泛型等语法特性，而这些在 JavaScript 中并不存在。',
+      createTime: Date.now(),
+    },
   ];
 
   @state()
   inputMessage: string = '';
 
   private handleInputChange(event: Event) {
-    const target = event.target as HTMLInputElement;
+    const target = event.target as HTMLTextAreaElement;
     this.inputMessage = target.value;
   }
 
-  private sendMessage() {
-    if (this.inputMessage.trim() === '') {
-      return;
+  private async scrollToBottom() {
+    await this.updateComplete;
+    this.shadowRoot?.querySelector('#bottom-anchor')?.scrollIntoView({
+      behavior: 'smooth',
+      block: 'end',
+    });
+  }
+
+  private handleKeyDown(event: KeyboardEvent) {
+    if (event.key === 'Enter' && !event.shiftKey) {
+      event.preventDefault();
+      if (!this.inputMessage.trim()) return;
+      this.sendMessage();
     }
-    const newMessage: Message = {
-      id: Date.now().toString(),
+  }
+
+  private isSending = false; // 防止重复发送消息
+
+  private updateMessageById(id: string, patch: Partial<Message>) {
+    this.messages = this.messages.map((msg) => (msg.id === id ? { ...msg, ...patch } : msg));
+  }
+
+  private async sendMessage() {
+    const content = this.inputMessage.trim();
+    if (!content || this.isSending) return;
+    this.isSending = true;
+
+    const now = Date.now();
+    const userMessage: Message = {
+      id: `${now}-user`,
       role: 'user',
-      content: this.inputMessage,
-      createTime: Date.now(),
+      content: content,
+      createTime: now,
     };
-    this.messages = [...this.messages, newMessage];
+    const assistantId = `${now}-assistant`;
+    const loadingMessage: Message = {
+      id: assistantId,
+      role: 'assistant',
+      content: '正在思考中...',
+      createTime: now + 1,
+      status: 'loading',
+    };
+    this.messages = [...this.messages, userMessage, loadingMessage];
     this.inputMessage = '';
+    this.scrollToBottom();
+
+    try {
+      const res = await fetch('http://localhost:3100/chat', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          messages: this.messages
+            .map((msg) => ({
+              role: msg.role,
+              content: msg.content,
+            }))
+            .filter((_, index) => index !== this.messages.length - 1),
+        }),
+      });
+      if (!res.ok || !res.body) {
+        throw new Error(`HTTP ${res.status}`);
+      }
+      this.updateMessageById(assistantId, {
+        status: 'sending',
+        content: '',
+      });
+      const reader = res.body!.getReader();
+      const decoder = new TextDecoder();
+      let buffer = ''; // 用于存储未完整接收的消息片段
+      let answer = '';
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        buffer += decoder.decode(value, {
+          stream: true,
+        });
+        const lines = buffer.split('\n\n');
+        buffer = lines.pop() ?? '';
+        for (const line of lines) {
+          if (line.startsWith('data: ')) {
+            const text = line.slice(6).trim();
+            if (text === '[DONE]') {
+              this.updateMessageById(assistantId, {
+                status: 'success',
+              });
+            } else {
+              answer += text;
+              const index = this.messages.findIndex((item) => item.id === assistantId);
+              if (index !== -1) {
+                this.messages = [...this.messages];
+                this.messages[index] = {
+                  ...this.messages[index],
+                  content: answer,
+                  status: 'sending',
+                };
+              }
+              this.scrollToBottom();
+            }
+          }
+        }
+      }
+      const target = this.messages.find((item) => item.id === assistantId);
+      if (target?.status !== 'success') {
+        this.updateMessageById(assistantId, { status: 'success' });
+      }
+    } catch (error) {
+      this.updateMessageById(assistantId, {
+        status: 'error',
+        content: '请求失败，请稍后重试.',
+      });
+    } finally {
+      this.isSending = false;
+      this.scrollToBottom();
+    }
   }
 
   render() {
@@ -444,24 +660,47 @@ export class AiChat extends LitElement {
                       : html`<iconify-icon icon="lucide:sparkles"></iconify-icon>`}
                   </div>
                   <div class="message-content">
-                    <div class="message-bubble">${message.content}</div>
+                    <div class="message-bubble ${message.status === 'loading' ? 'loading' : ''}">
+                      ${message.status === 'loading'
+                        ? html`
+                            <div class="loading-indicator" aria-label="AI 正在回复">
+                              <iconify-icon
+                                class="loading-icon"
+                                icon="lucide:loader-circle"
+                              ></iconify-icon>
+                              <span class="loading-dots" aria-hidden="true">
+                                <span></span>
+                                <span></span>
+                                <span></span>
+                              </span>
+                            </div>
+                          `
+                        : message.content}
+                    </div>
                     <span class="message-time">${formatTime(new Date(message.createTime))}</span>
                   </div>
                 </div>
               `,
             )}
+            <!-- 底部锚点 -->
+            <div id="bottom-anchor"></div>
           </div>
           <div class="chat-input-area">
             <div class="chat-input-wrapper">
-              <input
-                type="text"
+              <textarea
                 class="chat-input"
                 placeholder=${this.placeholder}
                 .value=${this.inputMessage}
                 @input=${this.handleInputChange}
-              />
-              <button class="input-send-btn" type="button" @click=${this.sendMessage}>
-                <iconify-icon icon="lucide:send-horizontal"></iconify-icon>
+                @keydown=${this.handleKeyDown}
+              ></textarea>
+              <button
+                class="input-send-btn ${this.inputMessage ? '' : 'disabled'}"
+                type="button"
+                ?disabled=${!this.inputMessage.trim()}
+                @click=${this.sendMessage}
+              >
+                <iconify-icon icon="lucide:arrow-up"></iconify-icon>
               </button>
             </div>
           </div>
