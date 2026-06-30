@@ -1,5 +1,5 @@
 import { LitElement, css, html } from 'lit';
-import { customElement, property, state } from 'lit/decorators.js';
+import { customElement, property, query, state } from 'lit/decorators.js';
 import { repeat } from 'lit/directives/repeat.js';
 import { formatTime } from '../utils';
 
@@ -29,6 +29,9 @@ export class AiChat extends LitElement {
       --ai-chat-ai-text: #1f2937;
       --ai-chat-code-bg: #1e1e2e;
       --ai-chat-code-text: #cdd6f4;
+      --ai-chat-scrollbar-track: #f1f3f5;
+      --ai-chat-scrollbar-thumb: #c7ced9;
+      --ai-chat-scrollbar-thumb-hover: #a7b1bf;
       --ai-chat-radius: 12px;
       --ai-chat-radius-sm: 8px;
       --ai-chat-font-size: 14px;
@@ -54,6 +57,9 @@ export class AiChat extends LitElement {
       --ai-chat-ai-text: #e4e4e7;
       --ai-chat-code-bg: #11111b;
       --ai-chat-code-text: #cdd6f4;
+      --ai-chat-scrollbar-track: #161621;
+      --ai-chat-scrollbar-thumb: #3f3f57;
+      --ai-chat-scrollbar-thumb-hover: #56567a;
       --ai-chat-shadow: 0 20px 60px rgba(0, 0, 0, 0.4), 0 8px 20px rgba(0, 0, 0, 0.3);
     }
 
@@ -216,6 +222,31 @@ export class AiChat extends LitElement {
       flex-direction: column;
       gap: 16px;
       background: var(--ai-chat-surface);
+      scrollbar-width: thin;
+      scrollbar-color: var(--ai-chat-scrollbar-thumb) var(--ai-chat-scrollbar-track);
+    }
+
+    .chat-messages-container::-webkit-scrollbar,
+    .chat-input::-webkit-scrollbar {
+      width: 10px;
+    }
+
+    .chat-messages-container::-webkit-scrollbar-track,
+    .chat-input::-webkit-scrollbar-track {
+      background: var(--ai-chat-scrollbar-track);
+      border-radius: 999px;
+    }
+
+    .chat-messages-container::-webkit-scrollbar-thumb,
+    .chat-input::-webkit-scrollbar-thumb {
+      background: var(--ai-chat-scrollbar-thumb);
+      border-radius: 999px;
+      border: 2px solid var(--ai-chat-scrollbar-track);
+    }
+
+    .chat-messages-container::-webkit-scrollbar-thumb:hover,
+    .chat-input::-webkit-scrollbar-thumb:hover {
+      background: var(--ai-chat-scrollbar-thumb-hover);
     }
 
     .message-row {
@@ -369,7 +400,7 @@ export class AiChat extends LitElement {
       flex: 1;
       width: 100%;
       min-height: 22px;
-      max-height: 120px;
+      max-height: 80px;
       border: none;
       outline: none;
       font-size: var(--ai-chat-font-size);
@@ -377,8 +408,10 @@ export class AiChat extends LitElement {
       background: transparent;
       font-family: inherit;
       line-height: 1.4;
-      overflow-y: auto;
+      overflow-y: hidden;
       display: block;
+      scrollbar-width: thin;
+      scrollbar-color: var(--ai-chat-scrollbar-thumb) var(--ai-chat-scrollbar-track);
     }
 
     textarea {
@@ -493,9 +526,26 @@ export class AiChat extends LitElement {
   @state()
   inputMessage: string = '';
 
+  @query('.chat-input')
+  private inputElement?: HTMLTextAreaElement;
+
+  protected firstUpdated() {
+    this.resizeInput();
+  }
+
+  private resizeInput(textarea: HTMLTextAreaElement | undefined = this.inputElement) {
+    if (!textarea) return;
+    const maxHeight = parseFloat(getComputedStyle(textarea).maxHeight) || 80;
+    textarea.style.height = 'auto';
+    const nextHeight = Math.min(textarea.scrollHeight, maxHeight);
+    textarea.style.height = `${nextHeight}px`;
+    textarea.style.overflowY = textarea.scrollHeight > maxHeight ? 'auto' : 'hidden';
+  }
+
   private handleInputChange(event: Event) {
     const target = event.target as HTMLTextAreaElement;
     this.inputMessage = target.value;
+    this.resizeInput(target);
   }
 
   private async scrollToBottom() {
@@ -542,6 +592,8 @@ export class AiChat extends LitElement {
     };
     this.messages = [...this.messages, userMessage, loadingMessage];
     this.inputMessage = '';
+    await this.updateComplete;
+    this.resizeInput();
     this.scrollToBottom();
 
     try {
@@ -689,6 +741,7 @@ export class AiChat extends LitElement {
             <div class="chat-input-wrapper">
               <textarea
                 class="chat-input"
+                rows="1"
                 placeholder=${this.placeholder}
                 .value=${this.inputMessage}
                 @input=${this.handleInputChange}
