@@ -14,7 +14,12 @@
     "clean": "rimraf dist"
   },
   "dependencies": {
+    "highlight.js": "^11.11.1",
     "iconify-icon": "^3.0.2",
-    "lit": "^3.3.3"
+    "lit": "^3.3.3",
+    "markdown-it": "^14.2.0"
+  },
+  "devDependencies": {
+    "@types/markdown-it": "^14.1.2"
   }
 }
