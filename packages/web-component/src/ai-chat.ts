@@ -4,6 +4,8 @@ import { repeat } from 'lit/directives/repeat.js';
 import { formatTime } from '../utils';
 
 import 'iconify-icon';
+import MarkdownIt from 'markdown-it';
+import hljs from 'highlight.js';
 
 interface Message {
   id: string;
@@ -632,13 +634,17 @@ export class AiChat extends LitElement {
         buffer = lines.pop() ?? '';
         for (const line of lines) {
           if (line.startsWith('data: ')) {
-            const text = line.slice(6).trim();
-            if (text === '[DONE]') {
+            const raw = line.slice(6);
+            if (raw === '[DONE]') {
               this.updateMessageById(assistantId, {
                 status: 'success',
               });
             } else {
-              answer += text;
+              try {
+                answer += JSON.parse(raw);
+              } catch {
+                answer += raw;
+              }
               const index = this.messages.findIndex((item) => item.id === assistantId);
               if (index !== -1) {
                 this.messages = [...this.messages];
@@ -665,6 +671,28 @@ export class AiChat extends LitElement {
     } finally {
       this.isSending = false;
       this.scrollToBottom();
+    }
+  }
+
+  private md = new MarkdownIt({
+    html: false,
+    linkify: true,
+    breaks: true,
+    highlight: function (str, lang) {
+      if (lang && hljs.getLanguage(lang)) {
+        try {
+          return hljs.highlight(str, { language: lang }).value;
+        } catch (__) {}
+      }
+      return '';
+    },
+  });
+
+  messageContent(role: 'user' | 'assistant' | 'system', content: string) {
+    if (role === 'assistant' || role === 'system') {
+      return html`<div .innerHTML=${this.md.render(content)}></div>`;
+    } else {
+      return html`<div>${content}</div>`;
     }
   }
 
@@ -727,7 +755,7 @@ export class AiChat extends LitElement {
                               </span>
                             </div>
                           `
-                        : message.content}
+                        : this.messageContent(message.role, message.content)}
                     </div>
                     <span class="message-time">${formatTime(new Date(message.createTime))}</span>
                   </div>
