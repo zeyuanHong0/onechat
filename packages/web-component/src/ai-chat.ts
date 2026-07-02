@@ -32,8 +32,7 @@ interface Message {
   id: string;
   role: 'user' | 'assistant' | 'system';
   content: string;
-  createTime: number;
-  status?: 'loading' | 'sending' | 'success' | 'error';
+  status?: 'loading' | 'sending' | 'stopped' | 'success' | 'error';
 }
 
 @customElement('ai-chat')
@@ -41,21 +40,21 @@ export class AiChat extends LitElement {
   static styles = [
     css`
       :host {
-        --ai-chat-primary: #6366f1;
-        --ai-chat-primary-hover: #4f46e5;
+        --ai-chat-primary: #000000;
+        --ai-chat-primary-hover: #1a1a1a;
         --ai-chat-bg: #ffffff;
-        --ai-chat-surface: #f8f9fa;
-        --ai-chat-border: #e5e7eb;
-        --ai-chat-text: #1f2937;
-        --ai-chat-text-secondary: #6b7280;
-        --ai-chat-user-bubble: linear-gradient(135deg, #6366f1, #8b5cf6);
-        --ai-chat-ai-bubble: #f3f4f6;
-        --ai-chat-ai-text: #1f2937;
-        --ai-chat-code-bg: #1e1e2e;
-        --ai-chat-code-text: #cdd6f4;
-        --ai-chat-scrollbar-track: #f1f3f5;
-        --ai-chat-scrollbar-thumb: #c7ced9;
-        --ai-chat-scrollbar-thumb-hover: #a7b1bf;
+        --ai-chat-surface: #fafafa;
+        --ai-chat-border: #eaeaea;
+        --ai-chat-text: #000000;
+        --ai-chat-text-secondary: #888888;
+        --ai-chat-user-bubble: #f5f5f5;
+        --ai-chat-ai-bubble: transparent;
+        --ai-chat-ai-text: #000000;
+        --ai-chat-code-bg: #1a1a1a;
+        --ai-chat-code-text: #e6e6e6;
+        --ai-chat-scrollbar-track: transparent;
+        --ai-chat-scrollbar-thumb: #d4d4d4;
+        --ai-chat-scrollbar-thumb-hover: #b0b0b0;
         --ai-chat-radius: 12px;
         --ai-chat-radius-sm: 8px;
         --ai-chat-font-size: 14px;
@@ -64,27 +63,27 @@ export class AiChat extends LitElement {
         --ai-chat-spacing: 16px;
         --ai-chat-spacing-sm: 8px;
         --ai-chat-spacing-xs: 4px;
-        --ai-chat-shadow: 0 20px 60px rgba(0, 0, 0, 0.12), 0 8px 20px rgba(0, 0, 0, 0.08);
+        --ai-chat-shadow: 0 20px 60px rgba(0, 0, 0, 0.1), 0 8px 20px rgba(0, 0, 0, 0.06);
         --ai-chat-container-width: 400px;
         --ai-chat-container-height: 600px;
         --ai-chat-fab-size: 56px;
       }
 
       :host(.dark-theme) {
-        --ai-chat-bg: #0f0f14;
-        --ai-chat-surface: #1a1a24;
-        --ai-chat-border: #2a2a3a;
-        --ai-chat-text: #e4e4e7;
-        --ai-chat-text-secondary: #71717a;
-        --ai-chat-user-bubble: linear-gradient(135deg, #6366f1, #7c3aed);
-        --ai-chat-ai-bubble: #1e1e2e;
-        --ai-chat-ai-text: #e4e4e7;
-        --ai-chat-code-bg: #11111b;
-        --ai-chat-code-text: #cdd6f4;
-        --ai-chat-scrollbar-track: #161621;
-        --ai-chat-scrollbar-thumb: #3f3f57;
-        --ai-chat-scrollbar-thumb-hover: #56567a;
-        --ai-chat-shadow: 0 20px 60px rgba(0, 0, 0, 0.4), 0 8px 20px rgba(0, 0, 0, 0.3);
+        --ai-chat-bg: #0a0a0a;
+        --ai-chat-surface: #141414;
+        --ai-chat-border: #2a2a2a;
+        --ai-chat-text: #ededed;
+        --ai-chat-text-secondary: #666666;
+        --ai-chat-user-bubble: #1a1a1a;
+        --ai-chat-ai-bubble: transparent;
+        --ai-chat-ai-text: #ededed;
+        --ai-chat-code-bg: #111111;
+        --ai-chat-code-text: #e6e6e6;
+        --ai-chat-scrollbar-track: transparent;
+        --ai-chat-scrollbar-thumb: #333333;
+        --ai-chat-scrollbar-thumb-hover: #555555;
+        --ai-chat-shadow: 0 20px 60px rgba(0, 0, 0, 0.5), 0 8px 20px rgba(0, 0, 0, 0.4);
       }
 
       * {
@@ -241,6 +240,7 @@ export class AiChat extends LitElement {
       .chat-messages-container {
         flex: 1;
         overflow-y: auto;
+        overflow-x: hidden;
         padding: 16px;
         display: flex;
         flex-direction: column;
@@ -275,40 +275,26 @@ export class AiChat extends LitElement {
 
       .message-row {
         display: flex;
-        gap: 10px;
         max-width: 100%;
       }
 
       .message-row.user {
-        flex-direction: row-reverse;
+        justify-content: flex-end;
+      }
+
+      .message-row.ai {
+        justify-content: flex-start;
       }
 
       .message-avatar {
-        width: 30px;
-        height: 30px;
-        border-radius: 50%;
-        flex-shrink: 0;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        font-size: 14px;
-      }
-
-      .message-row.user .message-avatar {
-        background: #e0e7ff;
-        color: #4338ca;
-      }
-
-      .message-row.ai .message-avatar {
-        background: var(--ai-chat-primary);
-        color: #ffffff;
+        display: none;
       }
 
       .message-content {
         display: flex;
         flex-direction: column;
         gap: 4px;
-        max-width: 85%;
+        max-width: 95%;
       }
 
       .message-bubble {
@@ -384,14 +370,21 @@ export class AiChat extends LitElement {
 
       .message-row.user .message-bubble {
         background: var(--ai-chat-user-bubble);
-        color: white;
+        color: var(--ai-chat-text);
         border-bottom-right-radius: 4px;
       }
 
+      .message-row.ai .message-content {
+        max-width: 100%;
+        min-width: 0;
+      }
+
       .message-row.ai .message-bubble {
-        background: var(--ai-chat-ai-bubble);
+        background: transparent;
         color: var(--ai-chat-ai-text);
-        border-bottom-left-radius: 4px;
+        padding: 0;
+        border-radius: 0;
+        overflow-wrap: break-word;
       }
 
       .message-time {
@@ -476,6 +469,38 @@ export class AiChat extends LitElement {
         cursor: default;
       }
 
+      .input-send-btn.stop iconify-icon {
+        font-size: 14px;
+      }
+
+      .input-send-btn.stop {
+        background: #000000;
+      }
+
+      .input-send-btn.stop:hover {
+        background: #1a1a1a;
+      }
+
+      :host(.dark-theme) .input-send-btn:not(.disabled):not(.stop),
+      :host(.dark-theme) .input-send-btn.stop {
+        background: #ffffff;
+      }
+
+      :host(.dark-theme) .input-send-btn:not(.disabled):not(.stop) iconify-icon,
+      :host(.dark-theme) .input-send-btn.stop iconify-icon {
+        color: #000000;
+      }
+
+      :host(.dark-theme) .chat-fab {
+        background: #ffffff;
+        color: #000000;
+      }
+
+      :host(.dark-theme) .chat-header-logo {
+        background: #ffffff;
+        color: #000000;
+      }
+
       .markdown-body {
         background-color: transparent !important;
       }
@@ -519,40 +544,34 @@ export class AiChat extends LitElement {
       id: '1',
       role: 'user',
       content: '你好，请帮我介绍一下 TypeScript 。',
-      createTime: Date.now(),
     },
     {
       id: '2',
       role: 'assistant',
       content:
         'TypeScript 是 JavaScript 的超集，为代码提供了静态类型检查，能在编译时发现潜在的错误。',
-      createTime: Date.now(),
     },
     {
       id: '3',
       role: 'user',
       content: 'TypeScript 的主要特点有哪些？',
-      createTime: Date.now(),
     },
     {
       id: '4',
       role: 'assistant',
       content:
         'TypeScript 的主要特点包括：\n1. 静态类型检查：在编译时检查类型错误，减少运行时错误。\n2. 类型注解：可以为变量、函数参数和返回值添加类型注解。\n3. 接口和类：支持面向对象编程，提供接口和类的概念。\n4. 模块化：支持 ES6 模块化语法，便于代码组织和复用。\n5. 丰富的工具支持：与主流编辑器和 IDE 集成，提供智能提示和重构功能。',
-      createTime: Date.now(),
     },
     {
       id: '5',
       role: 'user',
       content: 'TypeScript 与 JavaScript 有什么区别？',
-      createTime: Date.now(),
     },
     {
       id: '6',
       role: 'assistant',
       content:
         'TypeScript 是 JavaScript 的超集，主要区别在于：\n1. 类型系统：TypeScript 提供了静态类型检查，而 JavaScript 是动态类型语言。\n2. 编译过程：TypeScript 需要编译为 JavaScript 才能运行，而 JavaScript 可以直接在浏览器中运行。\n3. 语法扩展：TypeScript 引入了接口、枚举、泛型等语法特性，而这些在 JavaScript 中并不存在。',
-      createTime: Date.now(),
     },
   ];
 
@@ -633,9 +652,11 @@ export class AiChat extends LitElement {
     }
   }
 
+  @state()
   private isSending = false; // 防止重复发送消息
   private isAtBottom = true; // 是否在底部
   private isAutoScroll = false; // 自动滚动守卫
+  private abortController: AbortController | null = null; // 中断控制器
 
   private updateMessageById(id: string, patch: Partial<Message>) {
     this.messages = this.messages.map((msg) => (msg.id === id ? { ...msg, ...patch } : msg));
@@ -651,14 +672,12 @@ export class AiChat extends LitElement {
       id: `${now}-user`,
       role: 'user',
       content: content,
-      createTime: now,
     };
     const assistantId = `${now}-assistant`;
     const loadingMessage: Message = {
       id: assistantId,
       role: 'assistant',
       content: '正在思考中...',
-      createTime: now + 1,
       status: 'loading',
     };
     this.messages = [...this.messages, userMessage, loadingMessage];
@@ -669,6 +688,7 @@ export class AiChat extends LitElement {
     await this.scrollToBottom(false);
 
     try {
+      this.abortController = new AbortController();
       const res = await fetch('http://localhost:3100/chat', {
         method: 'POST',
         headers: {
@@ -682,6 +702,7 @@ export class AiChat extends LitElement {
             }))
             .filter((_, index) => index !== this.messages.length - 1),
         }),
+        signal: this.abortController.signal,
       });
       if (!res.ok || !res.body) {
         throw new Error(`HTTP ${res.status}`);
@@ -736,16 +757,31 @@ export class AiChat extends LitElement {
         this.updateMessageById(assistantId, { status: 'success' });
       }
     } catch (error) {
-      this.updateMessageById(assistantId, {
-        status: 'error',
-        content: '请求失败，请稍后重试.',
-      });
+      if (error instanceof DOMException && error.name === 'AbortError') {
+        // 用户主动中断，保留已生成的内容
+        const target = this.messages.find((item) => item.id === assistantId);
+        if (target) {
+          this.updateMessageById(assistantId, { status: 'stopped' });
+        }
+      } else {
+        this.updateMessageById(assistantId, {
+          status: 'error',
+          content: '请求失败，请稍后重试.',
+        });
+      }
     } finally {
+      this.abortController = null;
       this.isSending = false;
       if (this.isAtBottom) {
         await this.scrollToBottom();
         this.isAtBottom = true;
       }
+    }
+  }
+
+  private stopMessage() {
+    if (this.abortController) {
+      this.abortController.abort();
     }
   }
 
@@ -837,7 +873,6 @@ export class AiChat extends LitElement {
                           `
                         : this.messageContent(message.role, message.content)}
                     </div>
-                    <span class="message-time">${formatTime(new Date(message.createTime))}</span>
                   </div>
                 </div>
               `,
@@ -854,12 +889,17 @@ export class AiChat extends LitElement {
                 @keydown=${this.handleKeyDown}
               ></textarea>
               <button
-                class="input-send-btn ${this.inputMessage ? '' : 'disabled'}"
+                class="input-send-btn ${this.isSending
+                  ? 'stop'
+                  : this.inputMessage
+                    ? ''
+                    : 'disabled'}"
                 type="button"
-                ?disabled=${!this.inputMessage.trim()}
-                @click=${this.sendMessage}
+                @click=${this.isSending ? this.stopMessage : this.sendMessage}
               >
-                <iconify-icon icon="lucide:arrow-up"></iconify-icon>
+                ${this.isSending
+                  ? html`<iconify-icon icon="lucide:square"></iconify-icon>`
+                  : html`<iconify-icon icon="lucide:arrow-up"></iconify-icon>`}
               </button>
             </div>
           </div>
