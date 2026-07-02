@@ -587,12 +587,42 @@ export class AiChat extends LitElement {
     this.resizeInput(target);
   }
 
-  private async scrollToBottom() {
+  private async scrollToBottom(smooth = true) {
     await this.updateComplete;
-    this.shadowRoot?.querySelector('#bottom-anchor')?.scrollIntoView({
-      behavior: 'smooth',
-      block: 'end',
-    });
+    const container = this.shadowRoot?.querySelector('.chat-messages-container') as HTMLElement;
+    if (!container) return;
+    this.isAutoScroll = true;
+    if (smooth) {
+      container.scrollTo({ top: container.scrollHeight, behavior: 'smooth' });
+      // 平滑滚动动画约 600ms，延迟清除守卫
+      setTimeout(() => {
+        this.isAutoScroll = false;
+      }, 600);
+    } else {
+      // 等待浏览器完成布局后再读取 scrollHeight，避免读到旧值
+      await new Promise<void>((resolve) => {
+        requestAnimationFrame(() => {
+          requestAnimationFrame(() => {
+            container.scrollTop = container.scrollHeight;
+            resolve();
+          });
+        });
+      });
+      // 清除守卫
+      requestAnimationFrame(() => {
+        this.isAutoScroll = false;
+      });
+    }
+  }
+
+  private handleScroll(e: Event) {
+    const container = e.target as HTMLElement;
+    if (!container) return;
+    // 自动滚动期间跳过判断，避免误将 isAtBottom 设为 false
+    if (this.isAutoScroll) return;
+    const threshold = 50;
+    this.isAtBottom =
+      container.scrollTop + container.clientHeight >= container.scrollHeight - threshold;
   }
 
   private handleKeyDown(event: KeyboardEvent) {
@@ -604,6 +634,8 @@ export class AiChat extends LitElement {
   }
 
   private isSending = false; // 防止重复发送消息
+  private isAtBottom = true; // 是否在底部
+  private isAutoScroll = false; // 自动滚动守卫
 
   private updateMessageById(id: string, patch: Partial<Message>) {
     this.messages = this.messages.map((msg) => (msg.id === id ? { ...msg, ...patch } : msg));
@@ -633,7 +665,8 @@ export class AiChat extends LitElement {
     this.inputMessage = '';
     await this.updateComplete;
     this.resizeInput();
-    this.scrollToBottom();
+    this.isAtBottom = true;
+    await this.scrollToBottom(false);
 
     try {
       const res = await fetch('http://localhost:3100/chat', {
@@ -691,7 +724,9 @@ export class AiChat extends LitElement {
                   status: 'sending',
                 };
               }
-              this.scrollToBottom();
+              if (this.isAtBottom) {
+                await this.scrollToBottom(false);
+              }
             }
           }
         }
@@ -707,7 +742,10 @@ export class AiChat extends LitElement {
       });
     } finally {
       this.isSending = false;
-      this.scrollToBottom();
+      if (this.isAtBottom) {
+        await this.scrollToBottom();
+        this.isAtBottom = true;
+      }
     }
   }
 
@@ -770,7 +808,7 @@ export class AiChat extends LitElement {
               </button>
             </div>
           </div>
-          <div class="chat-messages-container">
+          <div class="chat-messages-container" @scroll=${this.handleScroll}>
             ${repeat(
               this.messages,
               (message) => message.id,
@@ -804,8 +842,6 @@ export class AiChat extends LitElement {
                 </div>
               `,
             )}
-            <!-- 底部锚点 -->
-            <div id="bottom-anchor"></div>
           </div>
           <div class="chat-input-area">
             <div class="chat-input-wrapper">
