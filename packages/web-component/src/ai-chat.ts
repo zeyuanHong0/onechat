@@ -28,6 +28,58 @@ function scopeCss(cssText: string, scope: string): string {
     });
 }
 
+// markdown 适配样式
+const markdownAdaptCssText = `
+  .markdown-body {
+    font-size: 13px;
+    line-height: 1.6;
+  }
+  .markdown-body h1,
+  .markdown-body h2,
+  .markdown-body h3,
+  .markdown-body h4,
+  .markdown-body h5,
+  .markdown-body h6 {
+    margin-top: 1em;
+    margin-bottom: 0.4em;
+  }
+  .markdown-body h1 { font-size: 1.3em; padding-bottom: 0.2em; }
+  .markdown-body h2 { font-size: 1.2em; padding-bottom: 0.2em; }
+  .markdown-body h3 { font-size: 1.1em; }
+  .markdown-body h4 { font-size: 1em; }
+  .markdown-body h5 { font-size: 0.95em; }
+  .markdown-body h6 { font-size: 0.9em; }
+  .markdown-body p { margin: 0.5em 0; }
+  .markdown-body ul,
+  .markdown-body ol { margin: 0.5em 0; padding-left: 1.5em; }
+  .markdown-body li { margin: 0.15em 0; }
+  .markdown-body blockquote { padding: 0.2em 0.8em; margin: 0.5em 0; }
+  .markdown-body :not(pre) > code {
+    padding: 0.15em 0.35em;
+    font-size: 0.88em;
+    background: var(--ai-chat-code-inline-bg);
+    border-radius: 4px;
+  }
+  .markdown-body pre {
+    padding: 12px;
+    margin: 0.5em 0;
+    font-size: 0.85em;
+    line-height: 1.5;
+    border-radius: var(--ai-chat-radius-sm);
+    background: var(--ai-chat-code-block-bg);
+  }
+  .markdown-body pre code {
+    padding: 0;
+    background: transparent;
+    font-size: inherit;
+  }
+  .markdown-body table { margin: 0.5em 0; font-size: 0.95em; }
+  .markdown-body hr { margin: 0.8em 0; }
+  .markdown-body img { margin: 0.5em 0; }
+  .markdown-body a { text-decoration: none; }
+  .markdown-body a:hover { text-decoration: underline; }
+`;
+
 interface Message {
   id: string;
   role: 'user' | 'assistant' | 'system';
@@ -47,17 +99,19 @@ export class AiChat extends LitElement {
         --ai-chat-border: #eaeaea;
         --ai-chat-text: #000000;
         --ai-chat-text-secondary: #888888;
-        --ai-chat-user-bubble: #f5f5f5;
+        --ai-chat-user-bubble: #ebebeb;
         --ai-chat-ai-bubble: transparent;
         --ai-chat-ai-text: #000000;
         --ai-chat-code-bg: #1a1a1a;
         --ai-chat-code-text: #e6e6e6;
+        --ai-chat-code-block-bg: #f0f1f3;
+        --ai-chat-code-inline-bg: rgba(0, 0, 0, 0.06);
         --ai-chat-scrollbar-track: transparent;
         --ai-chat-scrollbar-thumb: #d4d4d4;
         --ai-chat-scrollbar-thumb-hover: #b0b0b0;
         --ai-chat-radius: 12px;
         --ai-chat-radius-sm: 8px;
-        --ai-chat-font-size: 14px;
+        --ai-chat-font-size: 13px;
         --ai-chat-font-size-sm: 12px;
         --ai-chat-font-size-xs: 11px;
         --ai-chat-spacing: 16px;
@@ -75,11 +129,13 @@ export class AiChat extends LitElement {
         --ai-chat-border: #2a2a2a;
         --ai-chat-text: #ededed;
         --ai-chat-text-secondary: #666666;
-        --ai-chat-user-bubble: #1a1a1a;
+        --ai-chat-user-bubble: #202020;
         --ai-chat-ai-bubble: transparent;
         --ai-chat-ai-text: #ededed;
         --ai-chat-code-bg: #111111;
         --ai-chat-code-text: #e6e6e6;
+        --ai-chat-code-block-bg: #1a1a1a;
+        --ai-chat-code-inline-bg: rgba(255, 255, 255, 0.08);
         --ai-chat-scrollbar-track: transparent;
         --ai-chat-scrollbar-thumb: #333333;
         --ai-chat-scrollbar-thumb-hover: #555555;
@@ -509,6 +565,9 @@ export class AiChat extends LitElement {
     unsafeCSS(scopeCss(githubMarkdownDarkCss, ':host(.dark-theme)')),
     unsafeCSS(hljsLightCss),
     unsafeCSS(scopeCss(hljsDarkCss, ':host(.dark-theme)')),
+    // 适配样式
+    unsafeCSS(markdownAdaptCssText),
+    unsafeCSS(scopeCss(markdownAdaptCssText, ':host(.dark-theme)')),
   ];
 
   // 主题
@@ -898,7 +957,7 @@ export class AiChat extends LitElement {
                 @click=${this.isSending ? this.stopMessage : this.sendMessage}
               >
                 ${this.isSending
-                  ? html`<iconify-icon icon="lucide:square"></iconify-icon>`
+                  ? html`<iconify-icon icon="mdi:square"></iconify-icon>`
                   : html`<iconify-icon icon="lucide:arrow-up"></iconify-icon>`}
               </button>
             </div>
