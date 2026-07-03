@@ -1,7 +1,6 @@
 import { LitElement, css, html, unsafeCSS } from 'lit';
 import { customElement, property, query, state } from 'lit/decorators.js';
 import { repeat } from 'lit/directives/repeat.js';
-import { formatTime } from '../utils';
 
 import 'iconify-icon';
 import MarkdownIt from 'markdown-it';
@@ -62,11 +61,10 @@ const markdownAdaptCssText = `
   }
   .markdown-body pre {
     padding: 12px;
-    margin: 0.5em 0;
     font-size: 0.85em;
     line-height: 1.5;
-    border-radius: var(--ai-chat-radius-sm);
     background: var(--ai-chat-code-block-bg);
+    border-radius: 0 0 var(--ai-chat-radius-sm) var(--ai-chat-radius-sm);
   }
   .markdown-body pre code {
     padding: 0;
@@ -79,6 +77,48 @@ const markdownAdaptCssText = `
   .markdown-body a { text-decoration: none; }
   .markdown-body a:hover { text-decoration: underline; }
 `;
+
+const timerMap = new WeakMap<HTMLElement, number>();
+function handleCodeCopy(btn: HTMLElement) {
+  const codeText = btn.closest('.code-block-wrapper')?.querySelector('code')?.textContent ?? '';
+  navigator.clipboard.writeText(codeText).then(() => {
+    const icon = btn.querySelector('iconify-icon');
+    const text = btn.querySelector('.copy-text');
+    if (icon) icon.setAttribute('icon', 'lucide:check');
+    if (text) text.textContent = '已复制';
+    btn.classList.add('copied');
+    const oldTimer = timerMap.get(btn);
+    if (oldTimer) {
+      clearTimeout(oldTimer);
+    }
+    const timer = window.setTimeout(() => {
+      if (icon) icon.setAttribute('icon', 'lucide:copy');
+      if (text) text.textContent = '复制';
+      btn.classList.remove('copied');
+      timerMap.delete(btn);
+    }, 2000);
+    timerMap.set(btn, timer);
+  });
+}
+
+const codeBlockWrapper = (lang: string, code: string) => {
+  const displayLang = lang || 'text';
+  return `<div class="code-block-wrapper">
+    <div class="code-block-header">
+      <div class="code-block-lang">
+        <iconify-icon icon="lucide:file-code-2" class="code-lang-icon"></iconify-icon>
+        <span>${displayLang}</span>
+      </div>
+      <button class="code-copy-btn" data-copy title="复制代码">
+        <iconify-icon icon="lucide:copy"></iconify-icon>
+        <span class="copy-text">复制</span>
+      </button>
+    </div>
+    <div class="code-block-body">
+      <pre><code class="hljs language-${displayLang}">${code}</code></pre>
+    </div>
+  </div>`;
+};
 
 interface Message {
   id: string;
@@ -560,6 +600,87 @@ export class AiChat extends LitElement {
       .markdown-body {
         background-color: transparent !important;
       }
+
+      .markdown-body .code-block-wrapper {
+        width: 100%;
+        margin: 0.6em 0;
+        border-radius: var(--ai-chat-radius-sm);
+        border: 1px solid var(--ai-chat-border);
+        overflow: hidden;
+        background: transparent;
+      }
+
+      .markdown-body .code-block-header {
+        padding: 6px 12px;
+        background: var(--ai-chat-code-block-bg);
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        border-bottom: 1px solid var(--ai-chat-border);
+        user-select: none;
+      }
+
+      .markdown-body .code-block-lang {
+        display: inline-flex;
+        align-items: center;
+        gap: 5px;
+        font-size: 12px;
+        font-weight: 500;
+        color: var(--ai-chat-text-secondary);
+        text-transform: lowercase;
+        letter-spacing: 0.02em;
+      }
+
+      .markdown-body .code-block-lang .code-lang-icon {
+        font-size: 13px;
+        opacity: 0.7;
+      }
+
+      .markdown-body .code-copy-btn {
+        display: inline-flex;
+        align-items: center;
+        gap: 4px;
+        padding: 3px 8px;
+        border: none;
+        background: transparent;
+        color: var(--ai-chat-text-secondary);
+        cursor: pointer;
+        font-size: 11px;
+        border-radius: 4px;
+        opacity: 0;
+        transition:
+          opacity 0.15s,
+          color 0.15s,
+          background 0.15s;
+      }
+      .markdown-body .code-block-wrapper:hover .code-copy-btn {
+        opacity: 1;
+      }
+      .markdown-body .code-copy-btn:hover {
+        background: rgba(0, 0, 0, 0.06);
+        color: var(--ai-chat-text);
+      }
+      .markdown-body .code-copy-btn.copied {
+        opacity: 1;
+        color: #22c55e;
+      }
+      .markdown-body .code-copy-btn iconify-icon {
+        font-size: 13px;
+      }
+
+      .markdown-body .code-block-body {
+        overflow-x: auto;
+      }
+      .markdown-body .code-block-body pre {
+        margin: 0;
+        padding: 12px 14px;
+        border-radius: 0;
+        background: var(--ai-chat-code-block-bg);
+      }
+
+      :host(.dark-theme) .markdown-body .code-copy-btn:hover {
+        background: rgba(255, 255, 255, 0.08);
+      }
     `,
     unsafeCSS(githubMarkdownLightCss),
     unsafeCSS(scopeCss(githubMarkdownDarkCss, ':host(.dark-theme)')),
@@ -869,6 +990,20 @@ export class AiChat extends LitElement {
   connectedCallback() {
     super.connectedCallback();
     this.applyTheme();
+    this.shadowRoot?.addEventListener('click', async (e) => {
+      const btn = (e.target as HTMLElement).closest('[data-copy]');
+      if (!btn) return;
+      handleCodeCopy(btn as HTMLElement);
+    });
+    // 自定义代码块样式
+    this.md!.renderer.rules.fence = (tokens, idx, options, env, self) => {
+      const token = tokens[idx];
+      const [lang, ...attrs] = token.info.trim().split(/\s+/);
+      const code = options.highlight
+        ? options.highlight(token.content, lang, attrs.join(' '))
+        : token.content;
+      return codeBlockWrapper(lang, code);
+    };
   }
 
   render() {
