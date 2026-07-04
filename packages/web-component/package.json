@@ -14,7 +14,7 @@
     "clean": "rimraf dist"
   },
   "dependencies": {
-    "@traptitech/markdown-it-katex": "^3.6.0",
+    "@vscode/markdown-it-katex": "^1.1.2",
     "dompurify": "^3.4.11",
     "github-markdown-css": "^5.9.0",
     "highlight.js": "^11.11.1",
