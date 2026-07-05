@@ -9,6 +9,8 @@ import githubMarkdownLightCss from 'github-markdown-css/github-markdown-light.cs
 import githubMarkdownDarkCss from 'github-markdown-css/github-markdown-dark.css?inline';
 import hljsLightCss from 'highlight.js/styles/github.css?inline';
 import hljsDarkCss from 'highlight.js/styles/github-dark.css?inline';
+import { katex } from '@mdit/plugin-katex';
+import katexCss from 'katex/dist/katex.min.css?inline';
 
 // 给 CSS 中所有选择器加上 scope 前缀
 function scopeCss(cssText: string, scope: string): string {
@@ -682,6 +684,7 @@ export class AiChat extends LitElement {
         background: rgba(255, 255, 255, 0.08);
       }
     `,
+    unsafeCSS(katexCss),
     unsafeCSS(githubMarkdownLightCss),
     unsafeCSS(scopeCss(githubMarkdownDarkCss, ':host(.dark-theme)')),
     unsafeCSS(hljsLightCss),
@@ -1004,6 +1007,7 @@ export class AiChat extends LitElement {
         : token.content;
       return codeBlockWrapper(lang, code);
     };
+    this.md.use(katex);
   }
 
   render() {
