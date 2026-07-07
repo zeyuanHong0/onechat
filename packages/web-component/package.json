@@ -1,17 +1,51 @@
 {
   "name": "onechat-web-component",
-  "version": "0.0.1",
+  "version": "1.0.0",
   "description": "OneChat Web Component",
+  "license": "MIT",
+  "author": "zeyuanHong0",
+  "keywords": [
+    "ai",
+    "chat",
+    "chatbot",
+    "web-component",
+    "custom-element",
+    "lit",
+    "sse",
+    "streaming",
+    "markdown",
+    "mermaid"
+  ],
+  "homepage": "https://github.com/zeyuanHong0/onechat/tree/main/packages/web-component#readme",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/zeyuanHong0/onechat.git",
+    "directory": "packages/web-component"
+  },
+  "bugs": {
+    "url": "https://github.com/zeyuanHong0/onechat/issues"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
   "type": "module",
   "main": "./dist/index.js",
+  "module": "./dist/index.js",
   "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
   "files": [
     "dist"
   ],
   "scripts": {
     "dev": "vite",
-    "build": "tsc && vite build",
-    "clean": "rimraf dist"
+    "build": "vite build",
+    "clean": "rimraf dist",
+    "prepublishOnly": "npm run build"
   },
   "dependencies": {
     "@mdit/plugin-katex": "^1.0.1",
@@ -25,6 +59,7 @@
     "mermaid": "^11.16.0"
   },
   "devDependencies": {
-    "@types/markdown-it": "^14.1.2"
+    "@types/markdown-it": "^14.1.2",
+    "vite-plugin-dts": "^5.0.3"
   }
 }
