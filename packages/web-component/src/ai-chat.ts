@@ -29,6 +29,9 @@ export class AiChat extends LitElement {
   @property()
   placeholder = '有问题，尽管问';
 
+  @property()
+  endpoint = '';
+
   @property({ type: Boolean })
   isOpen = false;
 
@@ -39,41 +42,7 @@ export class AiChat extends LitElement {
   } as const;
 
   @state()
-  messages: Message[] = [
-    {
-      id: '1',
-      role: 'user',
-      content: '你好，请帮我介绍一下 TypeScript 。',
-    },
-    {
-      id: '2',
-      role: 'assistant',
-      content:
-        'TypeScript 是 JavaScript 的超集，为代码提供了静态类型检查，能在编译时发现潜在的错误。',
-    },
-    {
-      id: '3',
-      role: 'user',
-      content: 'TypeScript 的主要特点有哪些？',
-    },
-    {
-      id: '4',
-      role: 'assistant',
-      content:
-        'TypeScript 的主要特点包括：\n1. 静态类型检查：在编译时检查类型错误，减少运行时错误。\n2. 类型注解：可以为变量、函数参数和返回值添加类型注解。\n3. 接口和类：支持面向对象编程，提供接口和类的概念。\n4. 模块化：支持 ES6 模块化语法，便于代码组织和复用。\n5. 丰富的工具支持：与主流编辑器和 IDE 集成，提供智能提示和重构功能。',
-    },
-    {
-      id: '5',
-      role: 'user',
-      content: 'TypeScript 与 JavaScript 有什么区别？',
-    },
-    {
-      id: '6',
-      role: 'assistant',
-      content:
-        'TypeScript 是 JavaScript 的超集，主要区别在于：\n1. 类型系统：TypeScript 提供了静态类型检查，而 JavaScript 是动态类型语言。\n2. 编译过程：TypeScript 需要编译为 JavaScript 才能运行，而 JavaScript 可以直接在浏览器中运行。\n3. 语法扩展：TypeScript 引入了接口、枚举、泛型等语法特性，而这些在 JavaScript 中并不存在。',
-    },
-  ];
+  messages: Message[] = [];
 
   @state()
   inputMessage: string = '';
@@ -189,7 +158,7 @@ export class AiChat extends LitElement {
 
     try {
       this.abortController = new AbortController();
-      const res = await fetch('http://localhost:3100/chat', {
+      const res = await fetch(this.endpoint, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
