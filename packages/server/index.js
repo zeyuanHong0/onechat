@@ -66,10 +66,11 @@ app.post('/chat', (req, res) => {
 });
 
 app.post('/aichat', express.json(), async (req, res) => {
-  const { ai, messages } = req.body;
+  const { messages } = req.body;
+  const ai = 'mimo';
 
-  if (!ai || !Array.isArray(messages) || messages.length === 0) {
-    res.status(400).json({ error: '缺少必要参数: ai 或 messages' });
+  if (!Array.isArray(messages) || messages.length === 0) {
+    res.status(400).json({ error: '缺少必要参数messages' });
     return;
   }
 
