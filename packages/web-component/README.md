@@ -25,7 +25,7 @@ npm install onechat-web-component
 
 ## 快速开始
 
-原生 HTML 示例：
+通过 npm 安装后引入（推荐用于工程化项目）：
 
 ```html
 <!DOCTYPE html>
@@ -40,6 +40,35 @@ npm install onechat-web-component
 </body>
 </html>
 ```
+
+### 通过 CDN 引入（无需构建）
+
+无需安装依赖，直接用 `<script>` 标签引入即可使用，适合快速试用或纯静态页面：
+
+```html
+<!DOCTYPE html>
+<html>
+<head>
+  <script src="https://unpkg.com/onechat-web-component@1"></script>
+</head>
+<body>
+  <ai-chat endpoint="/api/chat"></ai-chat>
+</body>
+</html>
+```
+
+也可使用 ESM 方式，或将 CDN 换成 jsdelivr：
+
+```html
+<!-- ESM -->
+<script type="module">
+  import 'https://unpkg.com/onechat-web-component@1/dist/index.js'
+</script>
+
+<!-- jsdelivr -->
+<script src="https://cdn.jsdelivr.net/npm/onechat-web-component@1"></script>
+```
+
 
 ## API 属性
 

@@ -53,7 +53,15 @@ npm install onechat-web-component
 <ai-chat endpoint="/api/chat"></ai-chat>
 ```
 
-Vue、React 的接入方式，以及 `endpoint` 等属性说明，见 [组件文档](./packages/web-component/README.md)。
+或者无需构建，直接通过 CDN 用 `<script>` 标签引入（适合快速试用或纯静态页面）：
+
+```html
+<script src="https://unpkg.com/onechat-web-component@1"></script>
+
+<ai-chat endpoint="/api/chat"></ai-chat>
+```
+
+Vue、React 的接入方式，CDN 的更多用法（ESM / jsdelivr / 版本锁定），以及 `endpoint` 等属性说明，见 [组件文档](./packages/web-component/README.md)。
 
 ## 后端接口
 
