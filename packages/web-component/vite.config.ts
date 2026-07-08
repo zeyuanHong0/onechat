@@ -6,8 +6,9 @@ export default defineConfig({
   build: {
     lib: {
       entry: 'src/ai-chat.ts',
-      formats: ['es'],
-      fileName: 'index',
+      name: 'OneChat',
+      formats: ['es', 'iife'],
+      fileName: (format) => (format === 'es' ? 'index.js' : 'index.global.js'),
     },
     rollupOptions: {},
   },
