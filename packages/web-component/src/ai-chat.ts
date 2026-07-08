@@ -113,7 +113,15 @@ export class AiChat extends LitElement {
       container.scrollTop + container.clientHeight >= container.scrollHeight - threshold;
   }
 
+  private composing = false; // 是否正在输入中
+  private onCompositionStart() {
+    this.composing = true;
+  }
+  private onCompositionEnd() {
+    this.composing = false;
+  }
   private handleKeyDown(event: KeyboardEvent) {
+    if (this.composing || event.isComposing) return;
     if (event.key === 'Enter' && !event.shiftKey) {
       event.preventDefault();
       if (!this.inputMessage.trim()) return;
