@@ -19,7 +19,7 @@ OneChat 是一个开箱即用、框架无关的 AI 聊天 Web Component。一行
 
 | 包 | 目录 | 说明 |
 | --- | --- | --- |
-| `onechat-web-component` | [`packages/web-component`](./packages/web-component) | 核心 AI 聊天 Web Component，对外发布的 npm 包 |
+| `onechat-web` | [`packages/web-component`](./packages/web-component) | 核心 AI 聊天 Web Component，对外发布的 npm 包 |
 | `server` | [`packages/server`](./packages/server) | 后端接口参考实现（Express + OpenAI 兼容接口），演示 SSE 流式响应约定 |
 
 ## 本地开发
@@ -42,12 +42,12 @@ npm run build
 安装 npm 包后，导入即可使用自定义标签：
 
 ```bash
-npm install onechat-web-component
+npm install onechat-web
 ```
 
 ```html
 <script type="module">
-  import 'onechat-web-component'
+  import 'onechat-web'
 </script>
 
 <ai-chat endpoint="/api/chat"></ai-chat>
@@ -56,7 +56,7 @@ npm install onechat-web-component
 或者无需构建，直接通过 CDN 用 `<script>` 标签引入（适合快速试用或纯静态页面）：
 
 ```html
-<script src="https://unpkg.com/onechat-web-component@1"></script>
+<script src="https://unpkg.com/onechat-web@1"></script>
 
 <ai-chat endpoint="/api/chat"></ai-chat>
 ```

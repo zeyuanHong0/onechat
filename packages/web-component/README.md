@@ -20,7 +20,7 @@
 ## 安装
 
 ```bash
-npm install onechat-web-component
+npm install onechat-web
 ```
 
 ## 快速开始
@@ -32,7 +32,7 @@ npm install onechat-web-component
 <html>
 <head>
   <script type="module">
-    import 'onechat-web-component'
+    import 'onechat-web'
   </script>
 </head>
 <body>
@@ -49,7 +49,7 @@ npm install onechat-web-component
 <!DOCTYPE html>
 <html>
 <head>
-  <script src="https://unpkg.com/onechat-web-component@1"></script>
+  <script src="https://unpkg.com/onechat-web@1"></script>
 </head>
 <body>
   <ai-chat endpoint="/api/chat"></ai-chat>
@@ -62,11 +62,11 @@ npm install onechat-web-component
 ```html
 <!-- ESM -->
 <script type="module">
-  import 'https://unpkg.com/onechat-web-component@1/dist/index.js'
+  import 'https://unpkg.com/onechat-web@1/dist/index.js'
 </script>
 
 <!-- jsdelivr -->
-<script src="https://cdn.jsdelivr.net/npm/onechat-web-component@1"></script>
+<script src="https://cdn.jsdelivr.net/npm/onechat-web@1"></script>
 ```
 
 
@@ -109,7 +109,7 @@ export default defineConfig({
 </template>
 
 <script setup>
-import 'onechat-web-component'
+import 'onechat-web'
 </script>
 ```
 
@@ -118,7 +118,7 @@ import 'onechat-web-component'
 React 19+ 原生支持 Custom Element，直接 import 后即可使用：
 
 ```tsx
-import 'onechat-web-component'
+import 'onechat-web'
 
 function App() {
   return <ai-chat endpoint="/api/chat" />
