@@ -6,6 +6,7 @@ import 'iconify-icon';
 import type { Message } from './types';
 import { aiChatStyles } from './styles';
 import { handleCodeCopy, createMarkdownIt, initMermaid, renderMermaidNodes } from './markdown';
+import { getConversation, upsertConversation, clearConversations } from './storage';
 
 @customElement('ai-chat')
 export class AiChat extends LitElement {
@@ -135,8 +136,46 @@ export class AiChat extends LitElement {
   private isAutoScroll = false; // 自动滚动守卫
   private abortController: AbortController | null = null; // 中断控制器
 
+  private conversationId: string | null = null; // 当前对话 ID
+
   private updateMessageById(id: string, patch: Partial<Message>) {
     this.messages = this.messages.map((msg) => (msg.id === id ? { ...msg, ...patch } : msg));
+  }
+
+  // 保存当前会话id
+  private saveCurrentConversationId() {
+    if (this.conversationId) {
+      localStorage.setItem('currentConversationId', this.conversationId);
+    }
+  }
+
+  // 清空当前会话
+  private async clearCurrentConversation() {
+    if (this.messages.length === 0) return;
+    if (!confirm('确定要清空当前会话吗？')) return;
+
+    if (this.conversationId) {
+      await clearConversations();
+    }
+    this.conversationId = null;
+    this.messages = [];
+    localStorage.removeItem('currentConversationId');
+  }
+
+  // 恢复会话
+  private async restoreConversation() {
+    const id = localStorage.getItem('currentConversationId');
+    if (!id) return;
+    try {
+      const record = await getConversation(id);
+      if (record) {
+        this.conversationId = record.id;
+        this.messages = record.messages;
+      }
+    } catch (error) {
+      console.error('恢复会话失败:', error);
+      localStorage.removeItem('currentConversationId');
+    }
   }
 
   private async sendMessage() {
@@ -237,6 +276,19 @@ export class AiChat extends LitElement {
 
       await this.updateComplete;
       await renderMermaidNodes(this.shadowRoot);
+
+      // 保存对话
+      if (!this.conversationId) {
+        this.conversationId = `${now}`;
+      }
+      const conversationRecord = {
+        id: this.conversationId,
+        messages: this.messages,
+        updatedTime: now,
+        version: 1,
+      };
+      await upsertConversation(conversationRecord);
+      this.saveCurrentConversationId();
     } catch (error) {
       if (error instanceof DOMException && error.name === 'AbortError') {
         // 用户主动中断，保留已生成的内容
@@ -244,6 +296,16 @@ export class AiChat extends LitElement {
         if (target) {
           this.updateMessageById(assistantId, { status: 'stopped' });
         }
+        if (!this.conversationId) {
+          this.conversationId = `${now}`;
+        }
+        await upsertConversation({
+          id: this.conversationId,
+          messages: this.messages,
+          updatedTime: Date.now(),
+          version: 1,
+        });
+        this.saveCurrentConversationId();
       } else {
         console.error(error);
         this.updateMessageById(assistantId, {
@@ -277,7 +339,7 @@ export class AiChat extends LitElement {
     }
   }
 
-  connectedCallback() {
+  async connectedCallback() {
     super.connectedCallback();
     this.applyTheme();
     this.shadowRoot?.addEventListener('click', async (e) => {
@@ -286,6 +348,8 @@ export class AiChat extends LitElement {
       handleCodeCopy(btn as HTMLElement);
     });
     initMermaid(this.theme === 'dark' ? 'dark' : 'light');
+    await this.restoreConversation();
+    this.scrollToBottom(true);
   }
 
   private renderHeader() {
@@ -298,6 +362,14 @@ export class AiChat extends LitElement {
           <span class="chat-header-title">${this.title}</span>
         </div>
         <div class="chat-header-actions">
+          <button
+            class="chat-header-btn"
+            type="button"
+            @click=${this.clearCurrentConversation}
+            title="清空会话"
+          >
+            <iconify-icon icon="lucide:trash-2"></iconify-icon>
+          </button>
           <button
             class="chat-header-btn"
             type="button"
